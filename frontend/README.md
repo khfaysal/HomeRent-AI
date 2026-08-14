@@ -1,16 +1,54 @@
-# React + Vite
+# HomeRent AI — Frontend Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+An interactive, modern React + Vite application for house rent prediction, machine learning model evaluation, dataset lifecycle tracking, and custom model selection.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🌟 Key Features
 
-## React Compiler
+* **Dataset Upload & Smart Mapping**: Supports drag-and-drop CSV uploads with automatic header alias resolution (`price_in_taka` $\rightarrow$ `rent`, `beds` $\rightarrow$ `room_count`, `baths` $\rightarrow$ `balcony_count`).
+* **Target Training Model Choice**: Choose whether to train **All Models (Auto Compare)** or target **Gradient Boosting**, **Random Forest**, or **Linear Regression**.
+* **Model Performance Comparison**: Interactive bar charts and metrics cards showing $R^2$ Score, MAE, and RMSE across models.
+* **Tracked Trained Datasets**: View training session history, timestamps, accuracy scores, and active status.
+* **Dataset & Model Purging**: Delete inappropriate dataset entries and their associated `.pkl` model binaries with a single click.
+* **Target Prediction Model Choice**: Select which trained model algorithm to compute estimated rent with during predictions (**Auto Best**, **Gradient Boosting**, **Random Forest**, or **Linear Regression**).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+* **Framework**: React 19 + Vite
+* **Styling**: Vanilla CSS (TailwindCSS v4 compatible tokens)
+* **HTTP Client**: Axios with `VITE_API_URL` environment support
+* **Charts**: Recharts
+
+---
+
+## 🚀 Running Locally
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Start dev server:
+   ```bash
+   npm run dev
+   ```
+   App will open at `http://localhost:5173`.
+
+---
+
+## 🌐 Production Deployment Setup
+
+When deploying the frontend to static hosting services (such as Vercel, Netlify, or Render Static):
+
+1. Set the Environment Variable:
+   ```env
+   VITE_API_URL=https://your-backend-api-url.onrender.com
+   ```
+
+2. Build for production:
+   ```bash
+   npm run build
+   ```

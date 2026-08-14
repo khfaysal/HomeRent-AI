@@ -53,12 +53,15 @@ export default function App() {
     fetchHistory()
   }, [fetchHistory])
 
-  const handleTrain = async (file) => {
+  const handleTrain = async (file, targetModel = 'all') => {
     setTrainError(''); setIsTraining(true)
     setIsTrained(false); setModelMetrics(null); setPrediction(null)
 
     const fd = new FormData()
     fd.append('file', file)
+    if (targetModel) {
+      fd.append('target_model', targetModel)
+    }
     try {
       const { data } = await api.post('/train', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -109,6 +112,7 @@ export default function App() {
         room_count: form.room_count,
         balcony_count: form.balcony_count,
         road_facility: form.road_facility,
+        selected_model: form.selected_model || 'best',
       })
       setPrediction(data)
 

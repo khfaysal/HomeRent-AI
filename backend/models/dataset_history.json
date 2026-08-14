@@ -1,1 +1,39 @@
-[]
+[
+  {
+    "id": "ds_1786738514",
+    "filename": "train.csv",
+    "timestamp": "2026-08-15 02:15:14",
+    "best_model": "Random Forest",
+    "r2_score": 0.7684,
+    "metrics": {
+      "linear_regression": {
+        "mae": 11128.36,
+        "rmse": 14043.67,
+        "r2": 0.4869
+      },
+      "random_forest": {
+        "mae": 6831.48,
+        "rmse": 9436.43,
+        "r2": 0.7684
+      },
+      "gradient_boosting": {
+        "mae": 3832.14,
+        "rmse": 5075.2,
+        "r2": 0.933
+      }
+    },
+    "locations": [
+      "Badda",
+      "Banani",
+      "Bashundhara",
+      "Dhanmondi",
+      "Gulshan",
+      "Khilgaon",
+      "Mirpur",
+      "Mohammadpur",
+      "Rampura",
+      "Uttara"
+    ],
+    "is_active": true
+  }
+]

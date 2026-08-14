@@ -1,6 +1,6 @@
 import io
 import pandas as pd
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from schemas import (
@@ -34,10 +34,13 @@ app.add_middleware(
 
 
 @app.post("/train", response_model=TrainResponse)
-async def train(file: UploadFile = File(...)):
+async def train(
+    file: UploadFile = File(...),
+    target_model: str = Form("all"),
+):
     """
-    Accept a CSV dataset, train all three models, evaluate them,
-    save the artifacts, record history, and return performance metrics.
+    Accept a CSV dataset, train models, evaluate them,
+    save artifacts, record history, and return performance metrics.
     """
     # Validate file extension
     if not file.filename.endswith(".csv"):
@@ -65,7 +68,7 @@ async def train(file: UploadFile = File(...)):
 
     # Train models
     try:
-        result = train_all_models(df)
+        result = train_all_models(df, target_model=target_model)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -122,7 +125,7 @@ async def delete_history_item(dataset_id: str):
 @app.post("/predict", response_model=PredictResponse)
 async def predict(data: PredictRequest):
     """
-    Accept property features, load the best trained model,
+    Accept property features, load the specified (or best) trained model,
     and return the predicted monthly rent.
     """
     if not models_are_trained():
@@ -137,13 +140,14 @@ async def predict(data: PredictRequest):
             room_count=data.room_count,
             balcony_count=data.balcony_count,
             road_facility=data.road_facility,
+            selected_model=data.selected_model or "best",
         )
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception:
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Please provide valid property information."
+            detail=f"Prediction failed: {str(e)}"
         )
 
     return PredictResponse(

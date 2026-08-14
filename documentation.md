@@ -987,3 +987,29 @@ GET ESTIMATED MONTHLY RENT
 The most important architectural principle is:
 
 > **React is responsible for presentation and user interaction, while Python is responsible for preprocessing, model training, model evaluation, model storage, and rent prediction.**
+
+---
+
+# 27. Advanced System Upgrades & Production Features
+
+The application includes the following production-grade capabilities:
+
+### 1. Flexible Model Selection for Training & Prediction
+- **Training Model Target**: Users can choose to evaluate **All Models** (Auto Compare baseline) or train a specific algorithm (**Random Forest**, **Gradient Boosting**, or **Linear Regression**).
+- **Prediction Model Target**: Users can select which trained model pipeline computes rent estimates (**Auto Best Model**, **Random Forest**, **Gradient Boosting**, or **Linear Regression**).
+
+### 2. Dataset Training History & Purging
+- **Dataset Registry**: Every training run is logged into `dataset_history.json` with filename, timestamp, best model, $R^2$ score, and metrics.
+- **Track Deletion (`DELETE /history/{id}`)**: Users can delete inappropriate datasets directly from the UI, which removes the history track and purges associated `.pkl` model binaries from disk.
+
+### 3. Smart Header Alias Normalization & Fault Tolerance
+- **Automatic Header Alias Resolution**: Maps common variations like `price_in_taka` $\rightarrow$ `rent`, `beds` $\rightarrow$ `room_count`, `baths` $\rightarrow$ `balcony_count`.
+- **Fault-Tolerant Defaults**: Automatically defaults missing `road_facility` data to `"Yes"` so datasets missing road access columns train seamlessly.
+- **Encoding Fallbacks**: Reads UTF-8 BOM (`utf-8-sig`) and `latin-1` encodings cleanly without header corruption.
+
+### 4. Read-Only Serverless Filesystem Fallback
+- **Dynamic Writable Directory (`get_models_dir()`)**: Detects read-only serverless filesystems (e.g., AWS Lambda / Vercel `/var/task`) and automatically falls back to `/tmp/homerent_models/` for writing model artifacts.
+
+### 5. Multi-Domain Production Deployment Setup
+- **Configurable Base API**: Configured via `VITE_API_URL` environment variable for cross-origin deployment (e.g., Vercel Frontend + Render FastAPI Backend).
+

@@ -59,7 +59,7 @@ def _compute_metrics(y_true, y_pred) -> dict:
     return {"mae": round(mae, 2), "rmse": round(rmse, 2), "r2": round(r2, 4)}
 
 
-def train_all_models(df: pd.DataFrame) -> dict:
+def train_all_models(df: pd.DataFrame, target_model: str = "all") -> dict:
     """
     Validate, preprocess, train all three models, evaluate on test set,
     save all artifacts to disk, and return results.
@@ -101,8 +101,11 @@ def train_all_models(df: pd.DataFrame) -> dict:
         # Save full pipeline
         joblib.dump(pipeline, os.path.join(models_dir, f"{key}.pkl"))
 
-    # Determine best model by highest R²
-    best_key = max(metrics, key=lambda k: metrics[k]["r2"])
+    # Determine primary model choice
+    if target_model in MODEL_DEFINITIONS:
+        best_key = target_model
+    else:
+        best_key = max(metrics, key=lambda k: metrics[k]["r2"])
 
     # Save best model key and locations for prediction
     joblib.dump(best_key, os.path.join(models_dir, "best_model_key.pkl"))
@@ -116,21 +119,30 @@ def train_all_models(df: pd.DataFrame) -> dict:
     }
 
 
-def predict_rent(location: str, room_count: int, balcony_count: int, road_facility: str) -> dict:
+def predict_rent(
+    location: str,
+    room_count: int,
+    balcony_count: int,
+    road_facility: str,
+    selected_model: str = "best",
+) -> dict:
     """
-    Load the saved best-performing pipeline and generate a rent prediction.
+    Load the specified (or best) trained model pipeline and generate a rent prediction.
     """
     models_dir = get_models_dir()
-    best_key_path = os.path.join(models_dir, "best_model_key.pkl")
 
-    if not os.path.exists(best_key_path):
-        raise FileNotFoundError("Please train the models before making a prediction.")
+    if selected_model and selected_model in MODEL_DEFINITIONS:
+        model_key = selected_model
+    else:
+        best_key_path = os.path.join(models_dir, "best_model_key.pkl")
+        if not os.path.exists(best_key_path):
+            raise FileNotFoundError("Please train the models before making a prediction.")
+        model_key = joblib.load(best_key_path)
 
-    best_key = joblib.load(best_key_path)
-    pipeline_path = os.path.join(models_dir, f"{best_key}.pkl")
+    pipeline_path = os.path.join(models_dir, f"{model_key}.pkl")
 
     if not os.path.exists(pipeline_path):
-        raise FileNotFoundError("Trained model file not found. Please retrain.")
+        raise FileNotFoundError(f"Trained model '{MODEL_DISPLAY_NAMES.get(model_key, model_key)}' not found. Please train first.")
 
     pipeline = joblib.load(pipeline_path)
 
@@ -145,7 +157,7 @@ def predict_rent(location: str, room_count: int, balcony_count: int, road_facili
 
     return {
         "predicted_rent": round(float(predicted), 2),
-        "model": MODEL_DISPLAY_NAMES[best_key],
+        "model": MODEL_DISPLAY_NAMES.get(model_key, model_key),
     }
 
 

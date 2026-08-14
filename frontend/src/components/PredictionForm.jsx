@@ -260,6 +260,45 @@ export default function PredictionForm({ locations, onPredict, isPredicting, isT
               })}
             </div>
           </div>
+
+          {/* Model Selection for Prediction */}
+          <div style={{ gridColumn: '1 / -1', marginTop: 6 }}>
+            <FieldLabel icon={<span>🤖</span>} label="PREDICTION MODEL CHOICE" active={false} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+              {[
+                { id: 'best', label: 'Auto (Best Model)', icon: '🏆' },
+                { id: 'gradient_boosting', label: 'Gradient Boosting', icon: '🚀' },
+                { id: 'random_forest', label: 'Random Forest', icon: '🌲' },
+                { id: 'linear_regression', label: 'Linear Regression', icon: '📈' },
+              ].map((m) => {
+                const isSelected = (form.selected_model || 'best') === m.id
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => isTrained && set('selected_model', m.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: isSelected ? '2px solid #8B5CF6' : '1px solid #E2E8F0',
+                      background: isSelected ? 'rgba(139,92,246,0.08)' : '#FAFBFD',
+                      color: isSelected ? '#6D28D9' : '#64748B',
+                      fontWeight: isSelected ? 700 : 500,
+                      fontSize: '0.82rem',
+                      cursor: isTrained ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.95rem' }}>{m.icon}</span>
+                    <span>{m.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         {/* ── Property Summary Strip ── */}

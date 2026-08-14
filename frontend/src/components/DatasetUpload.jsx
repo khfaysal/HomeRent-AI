@@ -1,7 +1,15 @@
 import { useState, useRef } from 'react'
 
+const MODEL_OPTIONS = [
+  { id: 'all', label: 'Compare All Models', icon: '⚡' },
+  { id: 'gradient_boosting', label: 'Gradient Boosting', icon: '🚀' },
+  { id: 'random_forest', label: 'Random Forest', icon: '🌲' },
+  { id: 'linear_regression', label: 'Linear Regression', icon: '📈' },
+]
+
 export default function DatasetUpload({ onTrainSuccess, isTraining }) {
   const [file, setFile] = useState(null)
+  const [targetModel, setTargetModel] = useState('all')
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef()
@@ -35,8 +43,8 @@ export default function DatasetUpload({ onTrainSuccess, isTraining }) {
           </svg>
         </div>
         <div>
-          <div className="section-title">Upload Training Dataset</div>
-          <div className="section-subtitle">Drop your cleaned CSV to begin model training</div>
+          <div className="section-title">Upload Training Dataset & Choose Model</div>
+          <div className="section-subtitle">Drop your cleaned CSV and select your target model</div>
         </div>
         {file && (
           <div style={{
@@ -57,7 +65,7 @@ export default function DatasetUpload({ onTrainSuccess, isTraining }) {
         {/* Drop zone */}
         <div
           className={`drop-zone ${dragging ? 'dragging' : ''}`}
-          style={{ padding: '3rem 2rem', textAlign: 'center' }}
+          style={{ padding: '2.5rem 2rem', textAlign: 'center' }}
           onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
@@ -118,6 +126,42 @@ export default function DatasetUpload({ onTrainSuccess, isTraining }) {
           )}
         </div>
 
+        {/* Model Selection Selector */}
+        <div style={{ marginTop: 20 }}>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: 10 }}>
+            Select Training Model Target:
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+            {MODEL_OPTIONS.map((opt) => {
+              const isSelected = targetModel === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setTargetModel(opt.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    border: isSelected ? '2px solid #16A34A' : '1px solid #CBD5E1',
+                    background: isSelected ? 'rgba(22,163,74,0.08)' : '#FFFFFF',
+                    color: isSelected ? '#15803D' : '#475569',
+                    fontWeight: isSelected ? 700 : 500,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '1rem' }}>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Error */}
         {error && <div className="alert-error" style={{ marginTop: 12 }}>{error}</div>}
 
@@ -126,9 +170,9 @@ export default function DatasetUpload({ onTrainSuccess, isTraining }) {
           <button
             id="train-models-btn"
             className="btn-primary"
-            onClick={() => file && onTrainSuccess(file)}
+            onClick={() => file && onTrainSuccess(file, targetModel)}
             disabled={!file || isTraining}
-            style={{ minWidth: 200, fontSize: '1rem', padding: '0.9rem 2.5rem' }}
+            style={{ minWidth: 220, fontSize: '1rem', padding: '0.9rem 2.5rem' }}
           >
             {isTraining ? (
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
@@ -151,3 +195,4 @@ export default function DatasetUpload({ onTrainSuccess, isTraining }) {
     </div>
   )
 }
+

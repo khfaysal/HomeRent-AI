@@ -21,6 +21,7 @@ class PredictRequest(BaseModel):
     room_count: int = Field(..., gt=0, description="Number of rooms (must be > 0)")
     balcony_count: int = Field(..., ge=0, description="Number of balconies (must be >= 0)")
     road_facility: str = Field(..., pattern="^(Yes|No)$", description="Yes or No")
+    selected_model: Optional[str] = Field("best", description="Model choice: best, random_forest, gradient_boosting, linear_regression")
 
 
 class PredictResponse(BaseModel):
