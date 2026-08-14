@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from schemas import TrainResponse, ModelMetrics, PredictRequest, PredictResponse
 from model import train_all_models, predict_rent, models_are_trained
+from preprocessing import normalize_and_map_columns
 
 app = FastAPI(title="HomeRent AI API", version="1.0.0")
 
@@ -31,34 +32,32 @@ async def train(file: UploadFile = File(...)):
             detail="Please upload a valid CSV file."
         )
 
-    # Read file contents
+    # Read file contents with BOM & encoding fallback support
     contents = await file.read()
     try:
-        df = pd.read_csv(io.StringIO(contents.decode("utf-8")))
-    except Exception:
+        try:
+            text = contents.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = contents.decode("latin-1")
+        df = pd.read_csv(io.StringIO(text))
+    except Exception as e:
         raise HTTPException(
             status_code=400,
-            detail="Please upload a valid CSV file."
+            detail=f"Unable to parse CSV file: {str(e)}"
         )
 
-    # Normalize column names
-    df.columns = [col.strip().lower().replace(" ", "_") for col in df.columns]
+    # Normalize & map column aliases automatically (e.g., price->rent, beds->room_count, baths->balcony_count)
+    df = normalize_and_map_columns(df)
 
     # Train models (validation + training + evaluation + saving happens inside)
     try:
         result = train_all_models(df)
     except ValueError as e:
-        error_msg = str(e)
-        if "required columns" in error_msg.lower():
-            raise HTTPException(status_code=400, detail=error_msg)
-        raise HTTPException(
-            status_code=400,
-            detail="Unable to train the models. Please check your dataset."
-        )
-    except Exception:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Unable to train the models. Please check your dataset."
+            detail=f"Unable to train the models. Error: {str(e)}"
         )
 
     return TrainResponse(
