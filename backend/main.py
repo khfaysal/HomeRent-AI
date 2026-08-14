@@ -3,8 +3,22 @@ import pandas as pd
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from schemas import TrainResponse, ModelMetrics, PredictRequest, PredictResponse
-from model import train_all_models, predict_rent, models_are_trained
+from schemas import (
+    TrainResponse,
+    ModelMetrics,
+    PredictRequest,
+    PredictResponse,
+    HistoryResponse,
+    DatasetHistoryItem,
+)
+from model import (
+    train_all_models,
+    predict_rent,
+    models_are_trained,
+    record_training_history,
+    load_dataset_history,
+    delete_dataset_record,
+)
 from preprocessing import normalize_and_map_columns
 
 app = FastAPI(title="HomeRent AI API", version="1.0.0")
@@ -23,7 +37,7 @@ app.add_middleware(
 async def train(file: UploadFile = File(...)):
     """
     Accept a CSV dataset, train all three models, evaluate them,
-    save the artifacts, and return performance metrics.
+    save the artifacts, record history, and return performance metrics.
     """
     # Validate file extension
     if not file.filename.endswith(".csv"):
@@ -46,10 +60,10 @@ async def train(file: UploadFile = File(...)):
             detail=f"Unable to parse CSV file: {str(e)}"
         )
 
-    # Normalize & map column aliases automatically (e.g., price->rent, beds->room_count, baths->balcony_count)
+    # Normalize & map column aliases automatically
     df = normalize_and_map_columns(df)
 
-    # Train models (validation + training + evaluation + saving happens inside)
+    # Train models
     try:
         result = train_all_models(df)
     except ValueError as e:
@@ -60,14 +74,48 @@ async def train(file: UploadFile = File(...)):
             detail=f"Unable to train the models. Error: {str(e)}"
         )
 
+    # Record in history tracking registry
+    dataset_id = record_training_history(file.filename, result)
+
     return TrainResponse(
         status="success",
+        dataset_id=dataset_id,
         best_model=result["best_model_display"],
         locations=result["locations"],
         models={
             key: ModelMetrics(**metrics)
             for key, metrics in result["metrics"].items()
         },
+    )
+
+
+@app.get("/history", response_model=HistoryResponse)
+async def get_history():
+    """Return all tracked trained datasets and the active dataset ID."""
+    history = load_dataset_history()
+    active_item = next((item for item in history if item.get("is_active")), None)
+    active_id = active_item["id"] if active_item else None
+
+    return HistoryResponse(
+        status="success",
+        history=[DatasetHistoryItem(**item) for item in history],
+        active_dataset_id=active_id,
+    )
+
+
+@app.delete("/history/{dataset_id}", response_model=HistoryResponse)
+async def delete_history_item(dataset_id: str):
+    """
+    Delete a dataset record along with its trained model artifacts if active.
+    """
+    updated_history = delete_dataset_record(dataset_id)
+    active_item = next((item for item in updated_history if item.get("is_active")), None)
+    active_id = active_item["id"] if active_item else None
+
+    return HistoryResponse(
+        status="success",
+        history=[DatasetHistoryItem(**item) for item in updated_history],
+        active_dataset_id=active_id,
     )
 
 
@@ -102,3 +150,4 @@ async def predict(data: PredictRequest):
         predicted_rent=result["predicted_rent"],
         model=result["model"],
     )
+

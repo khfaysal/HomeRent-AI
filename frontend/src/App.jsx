@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import Header from './components/Header'
 import DatasetUpload from './components/DatasetUpload'
@@ -6,6 +6,7 @@ import TrainingStatus from './components/TrainingStatus'
 import ModelPerformance from './components/ModelPerformance'
 import PredictionForm from './components/PredictionForm'
 import PredictionResult from './components/PredictionResult'
+import DatasetHistory from './components/DatasetHistory'
 import ProjectSummary from './components/ProjectSummary'
 
 export default function App() {
@@ -17,9 +18,40 @@ export default function App() {
   const [bestModel, setBestModel]         = useState(null)
   const [locations, setLocations]         = useState([])
 
+  const [history, setHistory]             = useState([])
+  const [activeDatasetId, setActiveId]    = useState(null)
+
   const [predictionResult, setPrediction] = useState(null)
   const [trainError, setTrainError]       = useState('')
   const [predictError, setPredictError]   = useState('')
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const { data } = await axios.get('/history')
+      setHistory(data.history || [])
+      setActiveId(data.active_dataset_id || null)
+
+      const activeItem = data.history?.find(i => i.id === data.active_dataset_id || i.is_active)
+      if (activeItem) {
+        setModelMetrics(activeItem.metrics)
+        setBestModel(activeItem.best_model)
+        setLocations(activeItem.locations)
+        setIsTrained(true)
+      } else if (data.history?.length === 0) {
+        setIsTrained(false)
+        setModelMetrics(null)
+        setBestModel(null)
+        setLocations([])
+        setPrediction(null)
+      }
+    } catch (err) {
+      console.error('Failed to fetch history:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchHistory()
+  }, [fetchHistory])
 
   const handleTrain = async (file) => {
     setTrainError(''); setIsTraining(true)
@@ -35,12 +67,37 @@ export default function App() {
       setBestModel(data.best_model)
       setLocations(data.locations)
       setIsTrained(true)
+      await fetchHistory()
     } catch (err) {
       setTrainError(
         err.response?.data?.detail || 'Unable to train the models. Please check your dataset.'
       )
     } finally {
       setIsTraining(false)
+    }
+  }
+
+  const handleDeleteHistory = async (datasetId) => {
+    try {
+      const { data } = await axios.delete(`/history/${datasetId}`)
+      setHistory(data.history || [])
+      setActiveId(data.active_dataset_id || null)
+
+      const activeItem = data.history?.find(i => i.id === data.active_dataset_id || i.is_active)
+      if (activeItem) {
+        setModelMetrics(activeItem.metrics)
+        setBestModel(activeItem.best_model)
+        setLocations(activeItem.locations)
+        setIsTrained(true)
+      } else {
+        setIsTrained(false)
+        setModelMetrics(null)
+        setBestModel(null)
+        setLocations([])
+        setPrediction(null)
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to delete dataset track.')
     }
   }
 
@@ -96,6 +153,13 @@ export default function App() {
           <ModelPerformance models={modelMetrics} bestModel={bestModel} />
         )}
 
+        {/* ── 2b. Tracked Trained Datasets ── */}
+        <DatasetHistory
+          history={history}
+          activeId={activeDatasetId}
+          onDelete={handleDeleteHistory}
+        />
+
         {/* ── 3. Predict Your Rent — ALWAYS VISIBLE ── */}
         <PredictionForm
           locations={locations}
@@ -124,3 +188,4 @@ export default function App() {
     </div>
   )
 }
+

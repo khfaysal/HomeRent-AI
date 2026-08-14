@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, Optional
 
 
 class ModelMetrics(BaseModel):
@@ -10,6 +10,7 @@ class ModelMetrics(BaseModel):
 
 class TrainResponse(BaseModel):
     status: str
+    dataset_id: str
     best_model: str
     locations: list[str]
     models: Dict[str, ModelMetrics]
@@ -25,3 +26,21 @@ class PredictRequest(BaseModel):
 class PredictResponse(BaseModel):
     predicted_rent: float
     model: str
+
+
+class DatasetHistoryItem(BaseModel):
+    id: str
+    filename: str
+    timestamp: str
+    best_model: str
+    r2_score: float
+    metrics: Dict[str, ModelMetrics]
+    locations: list[str]
+    is_active: bool
+
+
+class HistoryResponse(BaseModel):
+    status: str
+    history: list[DatasetHistoryItem]
+    active_dataset_id: Optional[str] = None
+

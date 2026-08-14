@@ -130,3 +130,93 @@ def predict_rent(location: str, room_count: int, balcony_count: int, road_facili
 def models_are_trained() -> bool:
     """Return True if the best model key artifact exists on disk."""
     return os.path.exists(os.path.join(MODELS_DIR, "best_model_key.pkl"))
+
+
+import json
+import time
+
+HISTORY_FILE = os.path.join(MODELS_DIR, "dataset_history.json")
+
+
+def load_dataset_history() -> list[dict]:
+    """Load tracked dataset history from JSON file."""
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def save_dataset_history(history: list[dict]) -> None:
+    """Save dataset history list to JSON file."""
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2)
+
+
+def record_training_history(filename: str, train_result: dict) -> str:
+    """Record a dataset training session in history and set it active."""
+    history = load_dataset_history()
+    dataset_id = f"ds_{int(time.time())}"
+    timestamp_str = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    for item in history:
+        item["is_active"] = False
+
+    best_key = train_result["best_model_key"]
+    best_metrics = train_result["metrics"][best_key]
+
+    new_item = {
+        "id": dataset_id,
+        "filename": filename,
+        "timestamp": timestamp_str,
+        "best_model": train_result["best_model_display"],
+        "r2_score": best_metrics["r2"],
+        "metrics": train_result["metrics"],
+        "locations": train_result["locations"],
+        "is_active": True,
+    }
+
+    history.insert(0, new_item)
+    save_dataset_history(history)
+    return dataset_id
+
+
+def purge_model_files():
+    """Delete trained .pkl model files from disk."""
+    if not os.path.exists(MODELS_DIR):
+        return
+    for filename in os.listdir(MODELS_DIR):
+        if filename.endswith(".pkl"):
+            try:
+                os.remove(os.path.join(MODELS_DIR, filename))
+            except Exception:
+                pass
+
+
+def delete_dataset_record(dataset_id: str) -> list[dict]:
+    """
+    Delete a dataset record. If it was active and history becomes empty,
+    purge saved model artifacts from disk.
+    """
+    history = load_dataset_history()
+    deleted_was_active = False
+
+    for item in history:
+        if item["id"] == dataset_id and item.get("is_active"):
+            deleted_was_active = True
+            break
+
+    updated_history = [item for item in history if item["id"] != dataset_id]
+
+    if deleted_was_active:
+        if updated_history:
+            updated_history[0]["is_active"] = True
+        else:
+            purge_model_files()
+
+    save_dataset_history(updated_history)
+    return updated_history
+
