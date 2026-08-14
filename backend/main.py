@@ -122,6 +122,23 @@ async def delete_history_item(dataset_id: str):
     )
 
 
+@app.post("/history/{dataset_id}/activate", response_model=HistoryResponse)
+async def activate_history_item(dataset_id: str):
+    """
+    Switch active dataset and model for predictions.
+    """
+    from model import activate_dataset_record
+    updated_history = activate_dataset_record(dataset_id)
+    active_item = next((item for item in updated_history if item.get("is_active")), None)
+    active_id = active_item["id"] if active_item else None
+
+    return HistoryResponse(
+        status="success",
+        history=[DatasetHistoryItem(**item) for item in updated_history],
+        active_dataset_id=active_id,
+    )
+
+
 @app.post("/predict", response_model=PredictResponse)
 async def predict(data: PredictRequest):
     """

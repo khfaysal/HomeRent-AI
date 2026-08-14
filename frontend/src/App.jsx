@@ -25,7 +25,36 @@ export default function App() {
   const [trainError, setTrainError]       = useState('')
   const [predictError, setPredictError]   = useState('')
 
+  const saveStateToStorage = (metrics, best, locs, activeIdVal, historyItems) => {
+    try {
+      localStorage.setItem('homerent_model_state', JSON.stringify({
+        metrics, bestModel: best, locations: locs, activeId: activeIdVal, history: historyItems
+      }))
+    } catch (e) {
+      console.error('LocalStorage save error:', e)
+    }
+  }
+
   const fetchHistory = useCallback(async () => {
+    // 1. Instantly restore from LocalStorage fallback if available
+    try {
+      const cached = localStorage.getItem('homerent_model_state')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (parsed.metrics && parsed.locations) {
+          setModelMetrics(parsed.metrics)
+          setBestModel(parsed.bestModel)
+          setLocations(parsed.locations)
+          setIsTrained(true)
+          if (parsed.history) setHistory(parsed.history)
+          if (parsed.activeId) setActiveId(parsed.activeId)
+        }
+      }
+    } catch (e) {
+      console.error('LocalStorage restore error:', e)
+    }
+
+    // 2. Fetch live state from Backend History API
     try {
       const { data } = await api.get('/history')
       setHistory(data.history || [])
@@ -37,12 +66,14 @@ export default function App() {
         setBestModel(activeItem.best_model)
         setLocations(activeItem.locations)
         setIsTrained(true)
+        saveStateToStorage(activeItem.metrics, activeItem.best_model, activeItem.locations, data.active_dataset_id, data.history)
       } else if (data.history?.length === 0) {
         setIsTrained(false)
         setModelMetrics(null)
         setBestModel(null)
         setLocations([])
         setPrediction(null)
+        localStorage.removeItem('homerent_model_state')
       }
     } catch (err) {
       console.error('Failed to fetch history:', err)
@@ -70,6 +101,7 @@ export default function App() {
       setBestModel(data.best_model)
       setLocations(data.locations)
       setIsTrained(true)
+      saveStateToStorage(data.models, data.best_model, data.locations, data.dataset_id, history)
       await fetchHistory()
     } catch (err) {
       setTrainError(
@@ -77,6 +109,25 @@ export default function App() {
       )
     } finally {
       setIsTraining(false)
+    }
+  }
+
+  const handleActivateHistory = async (datasetId) => {
+    try {
+      const { data } = await api.post(`/history/${datasetId}/activate`)
+      setHistory(data.history || [])
+      setActiveId(data.active_dataset_id || null)
+
+      const activeItem = data.history?.find(i => i.id === data.active_dataset_id || i.is_active)
+      if (activeItem) {
+        setModelMetrics(activeItem.metrics)
+        setBestModel(activeItem.best_model)
+        setLocations(activeItem.locations)
+        setIsTrained(true)
+        saveStateToStorage(activeItem.metrics, activeItem.best_model, activeItem.locations, data.active_dataset_id, data.history)
+      }
+    } catch (err) {
+      alert(getErrorMessage(err, 'Failed to activate dataset model.'))
     }
   }
 
@@ -92,12 +143,14 @@ export default function App() {
         setBestModel(activeItem.best_model)
         setLocations(activeItem.locations)
         setIsTrained(true)
+        saveStateToStorage(activeItem.metrics, activeItem.best_model, activeItem.locations, data.active_dataset_id, data.history)
       } else {
         setIsTrained(false)
         setModelMetrics(null)
         setBestModel(null)
         setLocations([])
         setPrediction(null)
+        localStorage.removeItem('homerent_model_state')
       }
     } catch (err) {
       alert(getErrorMessage(err, 'Failed to delete dataset track.'))
@@ -162,6 +215,7 @@ export default function App() {
           history={history}
           activeId={activeDatasetId}
           onDelete={handleDeleteHistory}
+          onActivate={handleActivateHistory}
         />
 
         {/* ── 3. Predict Your Rent — ALWAYS VISIBLE ── */}

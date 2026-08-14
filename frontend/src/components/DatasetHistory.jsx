@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export default function DatasetHistory({ history, activeId, onDelete }) {
+export default function DatasetHistory({ history, activeId, onDelete, onActivate }) {
   const [deletingId, setDeletingId] = useState(null)
 
   if (!history || history.length === 0) {
@@ -108,8 +108,31 @@ export default function DatasetHistory({ history, activeId, onDelete }) {
                 </div>
               </div>
 
-              {/* Delete Action Button */}
-              <div>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {!isActive && onActivate && (
+                  <button
+                    type="button"
+                    onClick={() => onActivate(item.id)}
+                    style={{
+                      background: 'rgba(22,163,74,0.08)',
+                      color: '#16A34A',
+                      border: '1px solid rgba(22,163,74,0.25)',
+                      borderRadius: 8,
+                      padding: '8px 14px',
+                      fontSize: '0.82rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>⚡</span> Activate Model
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => handleDeleteClick(item.id, item.filename)}
@@ -137,7 +160,7 @@ export default function DatasetHistory({ history, activeId, onDelete }) {
                     <line x1="10" y1="11" x2="10" y2="17"/>
                     <line x1="14" y1="11" x2="14" y2="17"/>
                   </svg>
-                  {deletingId === item.id ? 'Deleting…' : 'Delete Dataset & Model'}
+                  {deletingId === item.id ? 'Deleting…' : 'Delete'}
                 </button>
               </div>
             </div>

@@ -253,3 +253,35 @@ def delete_dataset_record(dataset_id: str) -> list[dict]:
 
     save_dataset_history(updated_history)
     return updated_history
+
+
+def activate_dataset_record(dataset_id: str) -> list[dict]:
+    """
+    Mark the target dataset as active and update active prediction artifacts.
+    """
+    history = load_dataset_history()
+    models_dir = get_models_dir()
+    target_item = None
+
+    for item in history:
+        if item["id"] == dataset_id:
+            item["is_active"] = True
+            target_item = item
+        else:
+            item["is_active"] = False
+
+    if target_item:
+        display_name = target_item.get("best_model", "")
+        best_key = "gradient_boosting"
+        for key, name in MODEL_DISPLAY_NAMES.items():
+            if name == display_name:
+                best_key = key
+                break
+
+        joblib.dump(best_key, os.path.join(models_dir, "best_model_key.pkl"))
+        if "locations" in target_item:
+            joblib.dump(target_item["locations"], os.path.join(models_dir, "locations.pkl"))
+
+    save_dataset_history(history)
+    return history
+
