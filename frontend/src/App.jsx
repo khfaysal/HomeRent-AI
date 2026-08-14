@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
+import api, { getErrorMessage } from './api'
 import Header from './components/Header'
 import DatasetUpload from './components/DatasetUpload'
 import TrainingStatus from './components/TrainingStatus'
@@ -27,7 +27,7 @@ export default function App() {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const { data } = await axios.get('/history')
+      const { data } = await api.get('/history')
       setHistory(data.history || [])
       setActiveId(data.active_dataset_id || null)
 
@@ -60,7 +60,7 @@ export default function App() {
     const fd = new FormData()
     fd.append('file', file)
     try {
-      const { data } = await axios.post('/train', fd, {
+      const { data } = await api.post('/train', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       setModelMetrics(data.models)
@@ -70,7 +70,7 @@ export default function App() {
       await fetchHistory()
     } catch (err) {
       setTrainError(
-        err.response?.data?.detail || 'Unable to train the models. Please check your dataset.'
+        getErrorMessage(err, 'Unable to train the models. Please check your dataset and backend connection.')
       )
     } finally {
       setIsTraining(false)
@@ -79,7 +79,7 @@ export default function App() {
 
   const handleDeleteHistory = async (datasetId) => {
     try {
-      const { data } = await axios.delete(`/history/${datasetId}`)
+      const { data } = await api.delete(`/history/${datasetId}`)
       setHistory(data.history || [])
       setActiveId(data.active_dataset_id || null)
 
@@ -97,14 +97,14 @@ export default function App() {
         setPrediction(null)
       }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to delete dataset track.')
+      alert(getErrorMessage(err, 'Failed to delete dataset track.'))
     }
   }
 
   const handlePredict = async (form) => {
     setPredictError(''); setIsPredicting(true); setPrediction(null)
     try {
-      const { data } = await axios.post('/predict', {
+      const { data } = await api.post('/predict', {
         location: form.location,
         room_count: form.room_count,
         balcony_count: form.balcony_count,
@@ -118,7 +118,7 @@ export default function App() {
       }, 100)
     } catch (err) {
       setPredictError(
-        err.response?.data?.detail || 'Please provide valid property information.'
+        getErrorMessage(err, 'Please provide valid property information.')
       )
     } finally {
       setIsPredicting(false)
