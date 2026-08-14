@@ -9,8 +9,8 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/train': 'http://localhost:8000',
-      '/predict': 'http://localhost:8000',
+      '/train': 'http://127.0.0.1:8000',
+      '/predict': 'http://127.0.0.1:8000',
     },
   },
 })
